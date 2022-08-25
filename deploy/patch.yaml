@@ -1,0 +1,26 @@
+spec:
+  template:
+    spec:
+      containers:
+      - image: quay.io/sustainable_computing_io/kepler-estimator:latest
+        imagePullPolicy: IfNotPresent
+        name: estimator
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+      - name: kepler-exporter
+        command:
+        - /bin/sh
+        - -c
+        args:
+        - until [ -e /tmp/estimator.sock ]; do sleep 1; done && /usr/bin/kepler -address
+          0.0.0.0:9102 -enable-gpu=true -enable-cgroup-id=true
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+      volumes:
+      - emptyDir: {}
+        name: tmp

@@ -1,0 +1,17 @@
+{
+    "core_score": {
+        "curr_cpu_cycles": 1
+    },
+    "dram_score": {
+        "curr_cache_misses": 1
+    },
+    "uncore_score": {
+        "curr_cpu_cycles": 1
+    },
+    "gpu_score": {
+        "curr_cpu_cycles": 1
+    },
+    "pkg_score": {
+        "curr_cpu_cycles": 1
+    }
+}

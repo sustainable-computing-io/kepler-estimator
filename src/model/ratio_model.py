@@ -34,5 +34,6 @@ class RatioModel():
             y = list(output_df.sum(axis=1).values.squeeze())
         except Exception as e:
             msg = '{}\n'.format(e)
+            print(e)
             y = []
         return y, msg

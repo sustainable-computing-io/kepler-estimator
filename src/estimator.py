@@ -11,6 +11,7 @@ import pandas as pd
 fpath = os.path.join(os.path.dirname(__file__), 'model')
 sys.path.append(fpath)
 from model.load import load_all_models
+from model.common import parse_filters
 
 SERVE_SOCKET = '/tmp/estimator.sock'
 
@@ -52,8 +53,8 @@ def handle_request(model_df, data):
     except Exception as e:
         msg = 'fail to handle request: {}'.format(e)
         return {"powers": [], "msg": msg}
-
-    best_available_model = select_valid_model(model_df, power_request.datapoint.columns, power_request.filter)
+    filters = parse_filters(power_request.filter)
+    best_available_model = select_valid_model(model_df, power_request.datapoint.columns, filters)
     if power_request.model_name == "":
         model = best_available_model
     else:

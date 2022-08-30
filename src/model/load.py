@@ -39,23 +39,22 @@ class Model():
         return self.dyn_model.get_power(request)
 
     def is_valid_model(self, filters):
-        for filter in filters:
-            attrb = filter['attr'] 
-            val = filter['val']
+        for attrb, val in filters.items():
             if attrb == 'features':
                 if not self.feature_check(val):
                     return False
             else:
-                try:
+                if not hasattr(self, attrb) or getattr(self, attrb) is None:
+                    print('{} has no {}'.format(self.model_name, attrb))
+                else:
                     cmp_val = getattr(self, attrb)
+                    val = float(val)
                     if attrb == 'abs_max_corr': # higher is better
                         valid = cmp_val >= val
                     else: # lower is better
                         valid = cmp_val <= val
                     if not valid:
                         return False
-                except:
-                    continue
         return True
 
     def feature_check(self, features):

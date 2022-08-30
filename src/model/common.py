@@ -17,6 +17,7 @@ def transform_and_predict(model, request):
                 continue
             normalized_x = fe.transform(normalized_x)
         y = model.model.predict(normalized_x)
+        y[y < 0] = 0
         y = list(y)
     except Exception as e:
         msg = '{}\n'.format(e)
@@ -70,3 +71,22 @@ def load_model_by_json(model_name, model_filename):
     return model
 
 ###############################################
+
+FILTER_ITEM_DELIMIT = ';'
+VALUE_DELIMIT = ':'
+ARRAY_DELIMIT = ','
+
+def parse_filters(filter):
+    filter_list = filter.split(FILTER_ITEM_DELIMIT)
+    filters = dict()
+    for filter_item in filter_list:
+        splits = filter_item.split(VALUE_DELIMIT)
+        if len(splits) != 2:
+            continue
+        key = splits[0]
+        if key == 'features':
+            value = splits[1].split(ARRAY_DELIMIT)
+        else:
+            value = splits[1]
+        filters[key] = value
+    return filters 

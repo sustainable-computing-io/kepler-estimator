@@ -1,65 +1,60 @@
 # to test only py part
 # 
+import os
+import shutil
+os.environ['MODEL_SERVER_URL'] = 'localhost'
 
-from estimator import handle_request, load_all_models, DEFAULT_ERROR_KEYS
+from estimator import handle_request, get_output_path, loaded_model
+from model_server_connector import ModelOutputType
 import json
 
-values =  [[0.0, 
-            0.0,
-            10261888.000000002,
-            657541352.0,
-            271351808.0,
-            8672664.0,
-            657541352.0,
-            315585868416.0,
-            797468706528.0,
-            21.008000000000003]]
+SYSTEM_FEATURES = ["cpu_architecture"]
 
-full_metrics = ['curr_bytes_read',
-            'curr_bytes_writes',
-            'curr_cache_miss',
-            'curr_cgroupfs_cpu_usage_us',
-            'curr_cgroupfs_memory_usage_bytes',
-            'curr_cgroupfs_system_cpu_usage_us',
-            'curr_cgroupfs_user_cpu_usage_us',
-            'curr_cpu_cycles',
-            'curr_cpu_instr',
-            'curr_cpu_time']
+COUNTER_FEAUTRES = ["cache_miss", "cpu_cycles", "cpu_instr"]
+CGROUP_FEATURES = ["cgroupfs_cpu_usage_us", "cgroupfs_memory_usage_bytes", "cgroupfs_system_cpu_usage_us", "cgroupfs_user_cpu_usage_us"]
+IO_FEATURES = ["bytes_read", "bytes_writes"]
+BPF_FEATURES = ["cpu_time"]
+KUBELET_FEATURES =['container_cpu_usage_seconds_total', 'container_memory_working_set_bytes']
+WORKLOAD_FEATURES = COUNTER_FEAUTRES + CGROUP_FEATURES + IO_FEATURES + BPF_FEATURES + KUBELET_FEATURES
 
-cgroup_metrics = ['curr_cgroupfs_cpu_usage_us',
-            'curr_cgroupfs_memory_usage_bytes',
-            'curr_cgroupfs_system_cpu_usage_us',
-            'curr_cgroupfs_user_cpu_usage_us']
+NODE_STAT_POWER_LABEL = ["energy_in_pkg_joule", "energy_in_core_joule", "energy_in_dram_joule", "energy_in_uncore_joule", "energy_in_gpu_joule", "energy_in_other_joule"]
 
-power_dict = {
-    'core_power': [10],
-    'dram_power': [1],
-    'uncore_power': [0],
-    'gpu_power': [5],
-    'pkg_power': [15],
-    }
+CATEGORICAL_LABEL_TO_VOCAB = {
+                    "cpu_architecture": ["Sandy Bridge", "Ivy Bridge", "Haswell", "Broadwell", "Sky Lake", "Cascade Lake", "Coffee Lake", "Alder Lake"] 
+                    }
 
-model_names = [None, 'GradientBoostingRegressor_10', 'Linear Regression_10', 'Polynomial Regression_10', 'CorrRatio']
+FULL_FEATURES = WORKLOAD_FEATURES + SYSTEM_FEATURES
 
-def generate_request(model_name, n=1, metrics=full_metrics, power_on=True):
+def generate_request(model_name, n=1, metrics=WORKLOAD_FEATURES, system_features=SYSTEM_FEATURES, output_type=ModelOutputType.AbsPower.name):
     request_json = dict() 
     if model_name is not None:
         request_json['model_name'] = model_name
     request_json['metrics'] = metrics
-    request_json['values'] = [values[0][0:len(metrics)]]*n
-    if power_on:
-        request_json.update(power_dict)
+    request_json['system_features'] = system_features
+    request_json['system_values'] = []
+    for m in system_features:
+        request_json['system_values'] += [CATEGORICAL_LABEL_TO_VOCAB[m][0]]
+    request_json['values'] = [[1.0] *len(metrics)]*n
+    request_json['output_type'] = output_type
     return request_json
 
 if __name__ == '__main__':
-    model_df = load_all_models(DEFAULT_ERROR_KEYS)
-    init_len = len(model_df)
-    for request_json in [generate_request(model_name, 10) for model_name in model_names]:
+    output_types = [ModelOutputType.AbsPower, ModelOutputType.AbsComponentPower, ModelOutputType.DynPower]
+    for output_type in output_types:
+        request_json = generate_request(None, n=10, output_type=output_type.name)
         data = json.dumps(request_json)
-        output = handle_request(model_df, data)
-        assert len(output['powers']) > 0, "cannot get power {}".format(output['msg'])
-    cgrouponly_request = generate_request(None, metrics=cgroup_metrics, power_on=False)
-    data = json.dumps(cgrouponly_request)
-    output = handle_request(model_df, data)
-    assert len(output['powers']) > 0, "cannot get power {}".format(output['msg'])
-    assert len(model_df) < init_len, "some invalid model must be removed {}".format(model_df)
+        output = handle_request(data)
+        print(output)
+        assert len(output['powers']) > 0, "cannot get power {}\n {}".format(output['msg'], request_json)
+    
+    output_types = [ModelOutputType.DynPower]
+    for output_type in output_types:
+        output_path = get_output_path(output_type)
+        if os.path.exists(output_path):
+            shutil.rmtree(output_path)
+        del loaded_model[output_type.name]
+        request_json = generate_request(None, n=10, metrics=CGROUP_FEATURES + IO_FEATURES, output_type=output_type.name)
+        data = json.dumps(request_json)
+        output = handle_request(data)
+        print(output)
+        assert len(output['powers']) > 0, "cannot get power {}\n {}".format(output['msg'], request_json)

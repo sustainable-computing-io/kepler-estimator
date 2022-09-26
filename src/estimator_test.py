@@ -74,6 +74,7 @@ if __name__ == '__main__':
         for fg_name, best_model in valid_fgs.items():
             if os.path.exists(output_path):
                 shutil.rmtree(output_path)
+            if output_type.name in loaded_model:
                 del loaded_model[output_type.name]
             metrics = FeatureGroups[FeatureGroup[fg_name]]
             request_json = generate_request(None, n=10, metrics=metrics, output_type=output_type_name)

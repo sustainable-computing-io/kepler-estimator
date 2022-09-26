@@ -52,13 +52,17 @@ def handle_request(data):
     if is_weight:
         msg = "estimator is not implemented for weight-typed model"
         return {"powers": [], "msg": msg}
-    output_path = get_output_path(output_type)
-    if not os.path.exists(output_path):
-        output_path = make_request(power_request)
-        if output_path is None:
-            return {"powers": [], "msg": "failed to get model"}
+
     if output_type.name not in loaded_model:
+        output_path = get_output_path(output_type)
+        if not os.path.exists(output_path):
+            output_path = make_request(power_request)
+            if output_path is None:
+                return {"powers": [], "msg": "failed to get model"}
         loaded_model[output_type.name] = load_model(output_type.name)
+        # remove loaded model
+        shutil.rmtree(output_path)
+
     model = loaded_model[output_type.name]
     print('Estimator model: ', model.model_name)
     powers, msg = model.get_power(power_request)

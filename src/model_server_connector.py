@@ -48,10 +48,10 @@ def make_model_request(power_request):
     return {"metrics": power_request.metrics + power_request.system_features, "output_type": power_request.output_type, "filter": power_request.filter, "model_name": power_request.model_name}
 
 TMP_FILE = 'tmp.zip'
-DOWNLOAD_FOLDER = 'model'
+DOWNLOAD_FOLDER = 'download'
 
 def get_output_path(output_type):
-    return os.path.join(DOWNLOAD_FOLDER, output_type.name)
+    return os.path.join(os.path.dirname(__file__), DOWNLOAD_FOLDER, output_type.name)
 
 def make_request(power_request):
     model_request = make_model_request(power_request)

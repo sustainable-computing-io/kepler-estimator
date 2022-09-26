@@ -5,7 +5,7 @@ import json
 import os
 
 METADATA_FILENAME = 'metadata.json'
-MODEL_FOLDER = os.path.join(os.path.dirname(__file__), '.')
+MODEL_FOLDER = os.path.join(os.path.dirname(__file__), '../download')
 
 def transform_and_predict(model, request):
     msg = ""

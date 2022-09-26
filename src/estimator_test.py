@@ -2,10 +2,12 @@
 # 
 import os
 import shutil
+import enum
+
 os.environ['MODEL_SERVER_URL'] = 'localhost'
 
 from estimator import handle_request, get_output_path, loaded_model
-from model_server_connector import ModelOutputType
+from model_server_connector import ModelOutputType, list_all_models
 import json
 
 SYSTEM_FEATURES = ["cpu_architecture"]
@@ -25,6 +27,30 @@ CATEGORICAL_LABEL_TO_VOCAB = {
 
 FULL_FEATURES = WORKLOAD_FEATURES + SYSTEM_FEATURES
 
+class FeatureGroup(enum.Enum):
+   Full = 1
+   WorkloadOnly = 2
+   CounterOnly = 3
+   CgroupOnly = 4
+   BPFOnly = 5
+   KubeletOnly = 6
+   Unknown = 99
+
+def sort_features(features):
+    sorted_features = features.copy()
+    sorted_features.sort()
+    return sorted_features
+
+FeatureGroups = {
+    FeatureGroup.Full: sort_features(WORKLOAD_FEATURES + SYSTEM_FEATURES),
+    FeatureGroup.WorkloadOnly: sort_features(WORKLOAD_FEATURES),
+    FeatureGroup.CounterOnly: sort_features(COUNTER_FEAUTRES),
+    FeatureGroup.CgroupOnly: sort_features(CGROUP_FEATURES + IO_FEATURES),
+    FeatureGroup.BPFOnly: sort_features(BPF_FEATURES),
+    FeatureGroup.KubeletOnly: sort_features(KUBELET_FEATURES)
+}
+
+
 def generate_request(model_name, n=1, metrics=WORKLOAD_FEATURES, system_features=SYSTEM_FEATURES, output_type=ModelOutputType.AbsPower.name):
     request_json = dict() 
     if model_name is not None:
@@ -39,22 +65,19 @@ def generate_request(model_name, n=1, metrics=WORKLOAD_FEATURES, system_features
     return request_json
 
 if __name__ == '__main__':
-    output_types = [ModelOutputType.AbsPower, ModelOutputType.AbsComponentPower, ModelOutputType.DynPower]
-    for output_type in output_types:
-        request_json = generate_request(None, n=10, output_type=output_type.name)
-        data = json.dumps(request_json)
-        output = handle_request(data)
-        print(output)
-        assert len(output['powers']) > 0, "cannot get power {}\n {}".format(output['msg'], request_json)
-    
-    output_types = [ModelOutputType.DynPower]
-    for output_type in output_types:
+    available_models = list_all_models()
+    for output_type_name, valid_fgs in available_models.items():
+        if 'Weight' in output_type_name:
+            continue
+        output_type = ModelOutputType[output_type_name]
         output_path = get_output_path(output_type)
-        if os.path.exists(output_path):
-            shutil.rmtree(output_path)
-        del loaded_model[output_type.name]
-        request_json = generate_request(None, n=10, metrics=CGROUP_FEATURES + IO_FEATURES, output_type=output_type.name)
-        data = json.dumps(request_json)
-        output = handle_request(data)
-        print(output)
-        assert len(output['powers']) > 0, "cannot get power {}\n {}".format(output['msg'], request_json)
+        for fg_name, best_model in valid_fgs.items():
+            if os.path.exists(output_path):
+                shutil.rmtree(output_path)
+                del loaded_model[output_type.name]
+            metrics = FeatureGroups[FeatureGroup[fg_name]]
+            request_json = generate_request(None, n=10, metrics=metrics, output_type=output_type_name)
+            data = json.dumps(request_json)
+            output = handle_request(data)
+            print(output)
+            assert len(output['powers']) > 0, "cannot get power {}\n {}".format(output['msg'], request_json)

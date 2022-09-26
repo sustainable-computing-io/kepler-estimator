@@ -3,7 +3,7 @@ import enum
 import os
 import sys
 import shutil
-
+import json
 import codecs
 util_path = os.path.join(os.path.dirname(__file__), 'util')
 sys.path.append(util_path)
@@ -67,3 +67,10 @@ def make_request(power_request):
     shutil.unpack_archive(TMP_FILE, output_path)
     os.remove(TMP_FILE)
     return output_path
+
+def list_all_models():
+    response = requests.get('http://{}:{}/best-models'.format(MODEL_SERVER_URL, MODEL_SERVER_PORT))
+    if response.status_code != 200:
+        return None
+    model_names = json.loads(response.content.decode("utf-8"))
+    return model_names

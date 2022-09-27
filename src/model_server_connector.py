@@ -53,14 +53,14 @@ DOWNLOAD_FOLDER = 'download'
 def get_output_path(output_type):
     return os.path.join(os.path.dirname(__file__), DOWNLOAD_FOLDER, output_type.name)
 
-def make_request(power_request):
-    model_request = make_model_request(power_request)
-    output_type = ModelOutputType[power_request.output_type]
+def unpack(output_type, response, replace=True):
     output_path = get_output_path(output_type)
-    response = requests.post('http://{}:{}/model'.format(MODEL_SERVER_URL, MODEL_SERVER_PORT), json=model_request)
-    if response.status_code != 200:
-        return None
     if os.path.exists(output_path):
+        if not replace:
+            # delete downloaded file
+            os.remove(TMP_FILE)
+            return output_path
+        # delete existing model
         shutil.rmtree(output_path)
     with codecs.open(TMP_FILE, 'wb') as f:
         f.write(response.content)
@@ -68,9 +68,25 @@ def make_request(power_request):
     os.remove(TMP_FILE)
     return output_path
 
-def list_all_models():
-    response = requests.get('http://{}:{}/best-models'.format(MODEL_SERVER_URL, MODEL_SERVER_PORT))
+def make_request(power_request):
+    model_request = make_model_request(power_request)
+    output_type = ModelOutputType[power_request.output_type]
+    try:
+        response = requests.post('http://{}:{}/model'.format(MODEL_SERVER_URL, MODEL_SERVER_PORT), json=model_request)
+    except Exception as err:
+        print("cannot make request: {}".format(err))
+        return None
     if response.status_code != 200:
         return None
+    return unpack(output_type, response)
+
+def list_all_models():
+    try:
+        response = requests.get('http://{}:{}/best-models'.format(MODEL_SERVER_URL, MODEL_SERVER_PORT))
+    except Exception as err:
+        print("cannot list model: {}".format(err))
+        return dict()
+    if response.status_code != 200:
+        return dict()
     model_names = json.loads(response.content.decode("utf-8"))
     return model_names

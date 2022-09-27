@@ -1,6 +1,3 @@
-# predict.py <model name> <feature values>
-# load model, scaler, and metadata from model folder ../data/model/<model name>
-# apply scaler and model to metadata
 import json
 import os
 import shutil
@@ -36,6 +33,7 @@ import sys
 import socket
 import signal
 from model_server_connector import ModelOutputType, is_weight_output, make_request, get_output_path
+from archived_model import get_achived_model
 from model.load import load_model
 
 loaded_model = dict()
@@ -56,9 +54,13 @@ def handle_request(data):
     if output_type.name not in loaded_model:
         output_path = get_output_path(output_type)
         if not os.path.exists(output_path):
+            # try connecting to model server
             output_path = make_request(power_request)
             if output_path is None:
-                return {"powers": [], "msg": "failed to get model"}
+                # find from config
+                output_path = get_achived_model(power_request)
+                if output_path is None:
+                    return {"powers": [], "msg": "failed to get model"}
         loaded_model[output_type.name] = load_model(output_type.name)
         # remove loaded model
         shutil.rmtree(output_path)
@@ -68,7 +70,8 @@ def handle_request(data):
     powers, msg = model.get_power(power_request)
     if msg != "":
         print("{} fail to predict, removed".format(model.model_name))
-        shutil.rmtree(output_path)
+        if os.path.exists(output_path):
+            shutil.rmtree(output_path)
     return {"powers": powers, "msg": msg}
 
 class EstimatorServer:

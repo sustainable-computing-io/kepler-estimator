@@ -11,6 +11,9 @@ spec:
         volumeMounts:
         - mountPath: /tmp
           name: tmp
+        - name: cfm
+          mountPath: /etc/config
+          readOnly: true
       - name: kepler-exporter
         command:
         - /bin/sh
@@ -24,3 +27,6 @@ spec:
       volumes:
       - emptyDir: {}
         name: tmp
+      - name: cfm
+        configMap:
+          name: kepler-estimator-cfm

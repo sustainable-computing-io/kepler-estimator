@@ -42,11 +42,12 @@ def load_metadata(output_type):
 
 def load_model_by_pickle(output_type, model_filename):
     model_file = _modelpath(output_type) + model_filename
+    print(model_file)
     try:
         with open(model_file, 'rb') as f:
             model = pickle.load(f)
     except Exception as e:
-        print("cannot load fe: ", e)
+        print("cannot load by pickle: ", e)
         return None
     return model
 

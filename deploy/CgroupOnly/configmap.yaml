@@ -3,4 +3,4 @@ kind: ConfigMap
 metadata:
   name: kepler-estimator-cfm
 data:
-  DynPower: https://raw.githubusercontent.com/sustainable-computing-io/kepler-estimator/main/models/DynPower/CgroupOnly/ScikitMixed.zip
+  DynComponentPower: https://raw.githubusercontent.com/sustainable-computing-io/kepler-estimator/main/models/DynComponentPower/CounterOnly/ScikitMixed.zip

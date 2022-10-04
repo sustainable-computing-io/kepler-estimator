@@ -76,6 +76,7 @@ def generate_request(model_name, n=1, metrics=WORKLOAD_FEATURES, system_features
 if __name__ == '__main__':
     # test getting model from server
     available_models = list_all_models()
+    print(available_models)
     for output_type_name, valid_fgs in available_models.items():
         if 'Weight' in output_type_name:
             continue
@@ -94,7 +95,7 @@ if __name__ == '__main__':
 
     # test getting model from archived
     if len(available_models) == 0:
-        output_type_name = 'DynPower'
+        output_type_name = 'DynComponentPower'
         output_type = ModelOutputType[output_type_name]
         output_path = get_output_path(output_type)
         if output_type_name in loaded_model:

@@ -6,13 +6,14 @@ spec:
   template:
     spec:
       containers:
-      - image: quay.io/sustainable_computing_io/kepler-estimator:latest
+      - image: quay.io/sustainable_computing_io/kepler_estimator:latest
         imagePullPolicy: IfNotPresent
         name: estimator
         volumeMounts:
         - mountPath: /tmp
           name: tmp
-        command: ["python", "src/estimator_test.py"]
+        command: ["python3", "src/estimator_test.py"]
+      restartPolicy: Never
       volumes:
       - emptyDir: {}
         name: tmp

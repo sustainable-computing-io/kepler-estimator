@@ -18,6 +18,7 @@ os.environ['MODEL_SERVER_URL'] = 'localhost'
 from estimator import handle_request, get_output_path, loaded_model, PowerRequest
 from model_server_connector import ModelOutputType, list_all_models
 from archived_model import get_achived_model
+from util.config import getConfig
 import json
 
 SYSTEM_FEATURES = ["cpu_architecture"]
@@ -76,6 +77,7 @@ def generate_request(model_name, n=1, metrics=WORKLOAD_FEATURES, system_features
 if __name__ == '__main__':
     # test getting model from server
     available_models = list_all_models()
+    print(available_models)
     for output_type_name, valid_fgs in available_models.items():
         if 'Weight' in output_type_name:
             continue
@@ -91,10 +93,27 @@ if __name__ == '__main__':
             data = json.dumps(request_json)
             output = handle_request(data)
             assert len(output['powers']) > 0, "cannot get power {}\n {}".format(output['msg'], request_json)
+            print("result {}/{} from model server: {}".format(output_type_name, fg_name, output))
+
+    # test with initial models
+    for output_type in ModelOutputType:
+        output_type_name = output_type.name
+        url = getConfig(output_type_name, None)
+        if url is not None:
+            output_path = get_output_path(output_type)
+            if output_type_name in loaded_model:
+                del loaded_model[output_type_name]
+            if os.path.exists(output_path):
+                shutil.rmtree(output_path)
+            request_json = generate_request(None, n=10, metrics=FeatureGroups[FeatureGroup.Full], output_type=output_type_name)
+            data = json.dumps(request_json)
+            output = handle_request(data)
+            assert len(output['powers']) > 0, "cannot get power {}\n {}".format(output['msg'], request_json)
+            print("result from {}: {}".format(url, output))
 
     # test getting model from archived
     if len(available_models) == 0:
-        output_type_name = 'DynPower'
+        output_type_name = 'DynComponentPower'
         output_type = ModelOutputType[output_type_name]
         output_path = get_output_path(output_type)
         if output_type_name in loaded_model:
@@ -102,15 +121,16 @@ if __name__ == '__main__':
         if os.path.exists(output_path):
             shutil.rmtree(output_path)
         # valid model
-        os.environ[output_type_name] = "https://raw.githubusercontent.com/sustainable-computing-io/kepler-estimator/main/models/DynPower/CgroupOnly/ScikitMixed.zip"
+        os.environ[output_type_name] = "https://raw.githubusercontent.com/sustainable-computing-io/kepler-model-server/main/tests/test_models/DynComponentPower/CgroupOnly/ScikitMixed.zip"
         request_json = generate_request(None, n=10, metrics=FeatureGroups[FeatureGroup.CgroupOnly], output_type=output_type_name)
         data = json.dumps(request_json)
         output = handle_request(data)
         assert len(output['powers']) > 0, "cannot get power {}\n {}".format(output['msg'], request_json)
+        print("result {}/{} from static set: {}".format(output_type_name, FeatureGroup.CgroupOnly.name, output))
         del loaded_model[output_type_name]
         # invalid model
-        os.environ[output_type_name] = "https://raw.githubusercontent.com/sustainable-computing-io/kepler-estimator/main/models/DynPower/Full/ScikitMixed.zip"
-        request_json = generate_request(None, n=10, metrics=FeatureGroups[FeatureGroup.CgroupOnly], output_type=output_type_name)
+        os.environ[output_type_name] = "https://raw.githubusercontent.com/sustainable-computing-io/kepler-model-server/main/tests/test_models/DynComponentPower/Full/ScikitMixed.zip"
+        request_json = generate_request(None, n=10, metrics=FeatureGroups[FeatureGroup.BPFOnly], output_type=output_type_name)
         data = json.dumps(request_json)
         power_request = json.loads(data, object_hook = lambda d : PowerRequest(**d))
         output_path = get_achived_model(power_request)

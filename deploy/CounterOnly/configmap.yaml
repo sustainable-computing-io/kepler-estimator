@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kepler-estimator-cfm
+data:
+  MODEL_SERVER_URL: kepler-model-server.monitoring.cluster.local
+  DynComponentPower: https://raw.githubusercontent.com/sustainable-computing-io/kepler-model-server/main/tests/test_models/DynComponentPower/CounterOnly/ScikitMixed.zip

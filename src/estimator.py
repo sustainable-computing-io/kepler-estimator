@@ -1,17 +1,13 @@
-# predict.py <model name> <feature values>
-# load model, scaler, and metadata from model folder ../data/model/<model name>
-# apply scaler and model to metadata
-import pandas as pd
 import json
 import os
+import shutil
 
 import sys
+from unicodedata import name
 import pandas as pd
 
 fpath = os.path.join(os.path.dirname(__file__), 'model')
 sys.path.append(fpath)
-from model.load import load_all_models
-from model.common import parse_filters
 
 SERVE_SOCKET = '/tmp/estimator.sock'
 
@@ -19,15 +15,16 @@ SERVE_SOCKET = '/tmp/estimator.sock'
 # power request 
 
 class PowerRequest():
-    def __init__(self, metrics, values, model_name="", core_power=[], dram_power=[], uncore_power=[], pkg_power=[], gpu_power=[], filter=""):
+    def __init__(self, metrics, values, output_type, system_features, system_values, model_name="", filter=""):
         self.model_name = model_name
-        self.datapoint = pd.DataFrame(values, columns=metrics)
-        self.core_power = core_power
-        self.dram_power = dram_power
-        self.uncore_power = uncore_power
-        self.pkg_power = pkg_power
-        self.gpu_power = gpu_power
+        self.metrics = metrics
         self.filter = filter
+        self.output_type = output_type
+        self.system_features = system_features
+        self.datapoint = pd.DataFrame(values, columns=metrics)
+        data_point_size = len(self.datapoint)
+        for i in range(len(system_features)):
+            self.datapoint[system_features[i]] = [system_values[i]]*data_point_size
 
 ###############################################
 # serve
@@ -35,55 +32,60 @@ class PowerRequest():
 import sys
 import socket
 import signal
+from model_server_connector import ModelOutputType, is_weight_output, make_request, get_output_path
+from archived_model import get_achived_model
+from model.load import load_model
 
-DEFAULT_ERROR_KEYS = ['avg_mae', 'mae']
+loaded_model = dict()
 
-def select_valid_model(model_df, features, filters):
-    for index, row in model_df.iterrows():
-        model = row['model']
-        if model.is_valid_model(filters):
-            if model.feature_check(features):
-                return model
-        model_df.drop(index, inplace=True)
-    return None
-
-def handle_request(model_df, data):
+def handle_request(data):
     try:
         power_request = json.loads(data, object_hook = lambda d : PowerRequest(**d))
     except Exception as e:
         msg = 'fail to handle request: {}'.format(e)
         return {"powers": [], "msg": msg}
-    filters = parse_filters(power_request.filter)
-    best_available_model = select_valid_model(model_df, power_request.datapoint.columns, filters)
-    if power_request.model_name == "":
-        model = best_available_model
-    else:
-        selected = model_df[model_df['name']==power_request.model_name]
-        if len(selected) == 0:
-            print('cannnot find model: {}, use best available model'.format(power_request.model_name))
-            model = best_available_model
-        else:
-            model = selected.iloc[0]['model']
-    if model is not None:
-        print('Estimator model: ', model.model_name)
-        powers, msg = model.get_power(power_request)
-        return {"powers": powers, "msg": msg}
-    else:
-        return {"powers": [], "msg": "no model to apply"}
+
+    output_type = ModelOutputType[power_request.output_type]
+    is_weight = is_weight_output(output_type)
+    if is_weight:
+        msg = "estimator is not implemented for weight-typed model"
+        return {"powers": [], "msg": msg}
+
+    if output_type.name not in loaded_model:
+        output_path = get_output_path(output_type)
+        if not os.path.exists(output_path):
+            # try connecting to model server
+            output_path = make_request(power_request)
+            if output_path is None:
+                # find from config
+                output_path = get_achived_model(power_request)
+                if output_path is None:
+                    return {"powers": [], "msg": "failed to get model"}
+        loaded_model[output_type.name] = load_model(output_type.name)
+        # remove loaded model
+        shutil.rmtree(output_path)
+
+    model = loaded_model[output_type.name]
+    print('Estimator model: ', model.model_name)
+    powers, msg = model.get_power(power_request)
+    if msg != "":
+        print("{} fail to predict, removed".format(model.model_name))
+        if os.path.exists(output_path):
+            shutil.rmtree(output_path)
+    return {"powers": powers, "msg": msg}
 
 class EstimatorServer:
     def __init__(self, socket_path):
         self.socket_path = socket_path
-        self.model_df = load_all_models(DEFAULT_ERROR_KEYS)
-    
+
     def start(self):
         s = self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         s.bind(self.socket_path)
         s.listen(1)
         try:
             while True:
-                connection, address = s.accept()
-                self.accepted(connection, address)
+                connection, _ = s.accept()
+                self.accepted(connection)
         finally:
             try:
                 os.remove(self.socket_path)
@@ -91,7 +93,7 @@ class EstimatorServer:
             except:
                 pass
 
-    def accepted(self, connection, address):
+    def accepted(self, connection):
         data = b''
         while True:
             shunk = connection.recv(1024).strip()
@@ -99,7 +101,7 @@ class EstimatorServer:
             if shunk is None or shunk.decode()[-1] == '}':
                 break
         decoded_data = data.decode()
-        y = handle_request(self.model_df, decoded_data)
+        y = handle_request(decoded_data)
         response = json.dumps(y)
         connection.send(response.encode())
 

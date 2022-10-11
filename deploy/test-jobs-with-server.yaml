@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: estimator-job
+spec:
+  template:
+    spec:
+      containers:
+      - image: quay.io/sustainable_computing_io/kepler_estimator:latest
+        imagePullPolicy: IfNotPresent
+        name: estimator
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+        command: ["python3", "src/estimator_test.py"]
+      restartPolicy: Never
+      volumes:
+      - emptyDir: {}
+        name: tmp

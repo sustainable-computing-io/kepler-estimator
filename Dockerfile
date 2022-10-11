@@ -1,4 +1,4 @@
-FROM python:3.8
+FROM quay.io/sustainable_computing_io/kepler-estimator-base:latest
 
 WORKDIR /usr/src/app
 RUN mkdir -p src

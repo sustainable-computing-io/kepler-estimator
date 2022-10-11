@@ -3,7 +3,7 @@ spec:
     spec:
       containers:
       - image: quay.io/sustainable_computing_io/kepler-estimator:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         name: estimator
         resources: {}
         terminationMessagePath: /dev/termination-log

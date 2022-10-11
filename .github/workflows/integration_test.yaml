@@ -2,7 +2,7 @@ name: Integration Test
 
 on:
   push:
-  
+
 env:
   KEPLER_NAMESPACE: monitoring
 
@@ -29,7 +29,7 @@ jobs:
 
       - uses: actions/checkout@v3
 
-      - name: Build images
+      - name: build images
         run: |
           docker build -t kind-registry:5000/kepler_estimator:latest .
           docker tag kind-registry:5000/kepler_estimator:latest quay.io/sustainable_computing_io/kepler_estimator:latest
@@ -89,8 +89,3 @@ jobs:
             kubectl logs job/estimator-job
             kubectl delete -f deploy/test-jobs-with-server.yaml
             kubectl delete configmap kepler-estimator-cfm
-
-
-
-
-      

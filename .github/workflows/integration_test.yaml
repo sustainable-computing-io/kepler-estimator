@@ -3,25 +3,89 @@ name: Integration Test
 on:
   push:
 
+env:
+  KEPLER_NAMESPACE: monitoring
+
 jobs:
-  connect-to-model-server:
+  deploy_with_model_server:
     runs-on: ubuntu-latest
+
     steps:
-      - name: deploy Kind with kepler-model-server
-        uses: sustainable-computing-io/kepler-model-server/.github/workflows/cluster_deploy.yml
+      - name: Create Kind Cluster
+        uses: helm/kind-action@v1.3.0
+
+      - uses: actions/checkout@v3
         with:
-          load_initial_models: true
-          image-build: false
-      
+          repository: sunya-ch/kepler-model-server
+
+      - name: Create monitoring namespace 
+        run: kubectl create namespace ${{ env.KEPLER_NAMESPACE }}
+
+      - name: Deploy Model Server
+        run: kubectl create -f manifests/local/deployment.yaml
+
+      - name: Check deployment availablility
+        run: kubectl wait deployment kepler-model-server -n ${{ env.KEPLER_NAMESPACE }} --for condition=Available=True --timeout=120s
+
       - uses: actions/checkout@v3
 
       - name: build images
         run: |
           docker build -t kind-registry:5000/kepler_estimator:latest .
           docker tag kind-registry:5000/kepler_estimator:latest quay.io/sustainable_computing_io/kepler_estimator:latest
+        
+      - name: Load image to kind node
+        run: kind load docker-image quay.io/sustainable_computing_io/kepler_estimator:latest --name chart-testing
 
-      - name: Deploy test jobs
+      - name: Deploy test job
         run: kubectl create -f deploy/test-jobs-with-server.yaml
 
+      - name: Describe job
+        run: sleep 5; kubectl describe job estimator-job
+
+      - name: Get pod
+        run: kubectl get po --selector job-name=estimator-job -oyaml
+
       - name: Check job done without error
-        run: kubectl wait --for=condition=complete --timeout=90s job/estimator-job
+        run: |
+            kubectl wait --for=condition=complete --timeout=90s job/estimator-job
+            kubectl logs job/estimator-job
+            kubectl delete -f deploy/test-jobs-with-server.yaml
+
+      - name: Deploy BPFOnly configmap; delete job
+        run: |
+          kubectl create -f deploy/BPFOnly/configmap.yaml
+          kubectl create -f deploy/test-jobs-with-server.yaml
+
+      - name: Check job done without error
+        run: |
+            kubectl wait --for=condition=complete --timeout=90s job/estimator-job
+            kubectl logs job/estimator-job
+            kubectl delete -f deploy/test-jobs-with-server.yaml
+            kubectl delete configmap kepler-estimator-cfm
+
+
+      - name: Deploy CgroupOnly configmap; delete job
+        run: |
+          kubectl create -f deploy/CgroupOnly/configmap.yaml
+          kubectl create -f deploy/test-jobs-with-server.yaml
+
+      - name: Check job done without error
+        run: |
+            kubectl wait --for=condition=complete --timeout=90s job/estimator-job
+            kubectl logs job/estimator-job
+            kubectl delete -f deploy/test-jobs-with-server.yaml
+            kubectl delete configmap kepler-estimator-cfm
+
+
+      - name: Deploy CounterOnly configmap; delete job
+        run: |
+          kubectl create -f deploy/CounterOnly/configmap.yaml
+          kubectl create -f deploy/test-jobs-with-server.yaml
+
+      - name: Check job done without error
+        run: |
+            kubectl wait --for=condition=complete --timeout=90s job/estimator-job
+            kubectl logs job/estimator-job
+            kubectl delete -f deploy/test-jobs-with-server.yaml
+            kubectl delete configmap kepler-estimator-cfm

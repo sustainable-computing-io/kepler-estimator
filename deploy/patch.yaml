@@ -5,7 +5,6 @@ spec:
       - image: quay.io/sustainable_computing_io/kepler-estimator:latest
         imagePullPolicy: Always
         name: estimator
-        resources: {}
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
         volumeMounts:
@@ -15,6 +14,8 @@ spec:
           mountPath: /etc/config
           readOnly: true
       - name: kepler-exporter
+        image: quay.io/sustainable_computing_io/kepler:latest
+        imagePullPolicy: Always
         command:
         - /bin/sh
         - -c

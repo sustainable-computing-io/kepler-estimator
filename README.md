@@ -17,9 +17,15 @@ type PowerRequest struct {
 }
 ```
 
+#### Choose a pipeline and deploy the ConfigMap 
+For instance, deploy an eBPF-only pipeline by
+```bash
+kubectl apply -n kepler deploy/BPFOnly/configmap.yaml
+```
+
 #### Patch estimator sidecar to Kepler DaemonSet
 ```bash
-kubectl patch daemonset kepler-exporter --patch-file deploy/patch.yaml
+kubectl patch -n kepler daemonset kepler-exporter --patch-file deploy/patch.yaml
 ```
 
 #### Local test

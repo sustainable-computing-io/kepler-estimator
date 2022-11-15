@@ -6,7 +6,7 @@ util_path = os.path.join(os.path.dirname(__file__), 'model')
 sys.path.append(util_path)
 
 from model_server_connector import unpack, ModelOutputType
-from util.config import getConfig
+from util.config import get_init_model
 from model.common import load_metadata
 
 failed_list = []
@@ -57,6 +57,9 @@ def is_valid_model(metrics, metadata, filters):
                 return False
     return True
 
+def reset_failed_list():
+     global failed_list
+     failed_list = []
 
 def get_achived_model(power_request):  
     global failed_list
@@ -64,9 +67,11 @@ def get_achived_model(power_request):
     if output_type_name in failed_list:
         return None
     output_type = ModelOutputType[power_request.output_type]
-    url = getConfig(output_type_name, None)
-    if url is None:
+    url = get_init_model(output_type_name)
+    if url == "":
+        print("No URL set for ", output_type_name)
         return None
+    print("Try getting archieved model from URL: {} for {}".format(url, output_type_name))
     response = requests.get(url)
     if response.status_code != 200:
         return None

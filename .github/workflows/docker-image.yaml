@@ -12,7 +12,7 @@ jobs:
     - uses: actions/checkout@v2
       
     - name: build image
-      run: docker build -t quay.io/sustainable_computing_io/kepler_estimator:latest .
+      run: docker build -t quay.io/sustainable_computing_io/kepler-estimator:latest .
       
     - name: Login to Quay
       if: ${{ github.repository_owner == 'sustainable-computing-io' }}
@@ -24,4 +24,4 @@ jobs:
 
     - name: push to quay
       if: ${{ github.repository_owner == 'sustainable-computing-io' }}
-      run: docker push quay.io/sustainable_computing_io/kepler_estimator:latest
+      run: docker push quay.io/sustainable_computing_io/kepler-estimator:latest

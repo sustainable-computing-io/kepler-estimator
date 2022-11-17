@@ -6,6 +6,8 @@ src_path = os.path.join(os.path.dirname(__file__), '..')
 sys.path.append(src_path)
 from model_server_connector import is_comp_output, ModelOutputType
 
+import collections.abc
+
 class ScikitModel():
     def __init__(self, model_name, output_type, model_file, features, fe_files, component_init=False):
         self.name = model_name
@@ -33,6 +35,8 @@ class ScikitModel():
                  y, msg = transform_and_predict(model, request)
                  if msg != "":
                     return [], msg
+                 if not isinstance(y, collections.abc.Sequence):
+                    y = [y]
                  results[comp] = y
             return results, msg
         else:

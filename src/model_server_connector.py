@@ -7,7 +7,7 @@ import json
 import codecs
 util_path = os.path.join(os.path.dirname(__file__), 'util')
 sys.path.append(util_path)
-from util.config import getConfig
+from util.config import is_model_server_enabled, get_model_server_req_endpoint, get_model_server_list_endpoint
 
 class ModelOutputType(enum.Enum):
     AbsPower = 1
@@ -37,13 +37,6 @@ def is_comp_output(output_type):
         return True
     return False
 
-MODEL_SERVER_URL = "kepler-model-server.monitoring.cluster.local"
-MODEL_SERVER_URL = getConfig('MODEL_SERVER_URL', MODEL_SERVER_URL)
-
-MODEL_SERVER_PORT = 8100
-MODEL_SERVER_PORT = getConfig('MODEL_SERVER_PORT', MODEL_SERVER_PORT)
-MODEL_SERVER_PORT = int(MODEL_SERVER_PORT)
-
 def make_model_request(power_request):
     return {"metrics": power_request.metrics + power_request.system_features, "output_type": power_request.output_type, "filter": power_request.filter, "model_name": power_request.model_name}
 
@@ -69,10 +62,12 @@ def unpack(output_type, response, replace=True):
     return output_path
 
 def make_request(power_request):
+    if not is_model_server_enabled():
+        return None
     model_request = make_model_request(power_request)
     output_type = ModelOutputType[power_request.output_type]
     try:
-        response = requests.post('http://{}:{}/model'.format(MODEL_SERVER_URL, MODEL_SERVER_PORT), json=model_request)
+        response = requests.post(get_model_server_req_endpoint(), json=model_request)
     except Exception as err:
         print("cannot make request: {}".format(err))
         return None
@@ -81,8 +76,10 @@ def make_request(power_request):
     return unpack(output_type, response)
 
 def list_all_models():
+    if not is_model_server_enabled():
+        return dict()
     try:
-        response = requests.get('http://{}:{}/best-models'.format(MODEL_SERVER_URL, MODEL_SERVER_PORT))
+        response = requests.get(get_model_server_list_endpoint())
     except Exception as err:
         print("cannot list model: {}".format(err))
         return dict()

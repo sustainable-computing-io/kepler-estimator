@@ -7,7 +7,7 @@ This python will serve a PowerReequest from model package in Kepler exporter as 
 type PowerRequest struct {
     ModelName       string      `json:"model_name"`
     MetricNames     []string    `json:"metrics"`
-    PodMetricValues [][]float32 `json:"values"`
+    ContainerMetricValues [][]float32 `json:"values"`
     CorePower       []float32   `json:"core_power"`
     DRAMPower       []float32   `json:"dram_power"`
     UncorePower     []float32   `json:"uncore_power"`

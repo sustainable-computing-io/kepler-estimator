@@ -1,3 +1,64 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kepler-model-server-cfm
+data:
+  MODEL_PATH: models
+  INITIAL_MODELS_LOC: https://raw.githubusercontent.com/sustainable-computing-io/kepler-model-server/main/tests/test_models
+  INITIAL_MODEL_NAMES: |
+    AbsComponentModelWeight=KerasCompWeightFullPipeline
+    AbsComponentPower=KerasCompFullPipeline
+    DynComponentPower=ScikitMixed
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: model-server
+  labels:
+    app.kubernetes.io/component: model-server
+    app.kubernetes.io/name: kepler-model-server
+spec:
+  volumes:
+  - name: cfm
+    configMap:
+      name: kepler-model-server-cfm
+  containers:
+  - name: server-api
+    image: quay.io/sustainable_computing_io/kepler-model-server:latest
+    imagePullPolicy: Always
+    ports:
+    - containerPort: 8100
+    volumeMounts:
+      - name: cfm
+        mountPath: /etc/config
+        readOnly: true
+    command: ["python3.8",  "model_server.py"]
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: kepler-model-server
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/component: model-server
+    app.kubernetes.io/name: kepler-model-server
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/component: model-server
+    app.kubernetes.io/name: kepler-model-server
+  ports:
+  - name: http
+    port: 8100
+    targetPort: http
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kepler-cfm
+data:
+  MODEL_SERVER_ENABLE: true
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -5,15 +66,27 @@ metadata:
 spec:
   template:
     spec:
+      initContainers:
+          - name: wait-for-model-server
+            image: stefanevinance/wait-for-200
+            env:
+              - name: URL
+                value: http://model-server.default.svc.cluster.local:8100/best-models
       containers:
-      - image: quay.io/sustainable_computing_io/kepler_estimator:latest
+      - image: quay.io/sustainable_computing_io/kepler-estimator:latest
         imagePullPolicy: IfNotPresent
         name: estimator
         volumeMounts:
         - mountPath: /tmp
           name: tmp
+        - name: cfm
+          mountPath: /etc/config
+          readOnly: true
         command: ["python3", "src/estimator_test.py"]
       restartPolicy: Never
       volumes:
       - emptyDir: {}
         name: tmp
+      - name: cfm
+        configMap:
+          name: kepler-cfm

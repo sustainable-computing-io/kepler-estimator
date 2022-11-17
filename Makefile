@@ -5,3 +5,6 @@ CTR_CMD :=$(or $(shell which podman 2>/dev/null), $(shell which docker 2>/dev/nu
 CTR_CMD = docker
 build:
 	$(CTR_CMD) build -t $(IMAGE_REPO):$(IMAGE_VERSION) .
+
+test:
+	python src/estimator_test.py

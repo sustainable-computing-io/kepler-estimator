@@ -143,7 +143,7 @@ if __name__ == '__main__':
         power_request = json.loads(data, object_hook = lambda d : PowerRequest(**d))
         output_path = get_achived_model(power_request)
         assert output_path is None, "model should be invalid\n {}".format(output_path)
-        os.environ['MODEL_CONFIG'] = "POD_COMPONENTS_ESTIMATOR=true\nPOD_COMPONENTS_INIT_URL=https://raw.githubusercontent.com/sustainable-computing-io/kepler-model-server/main/tests/test_models/DynComponentPower/CgroupOnly/ScikitMixed.zip\n"
+        os.environ['MODEL_CONFIG'] = "CONTAINER_COMPONENTS_ESTIMATOR=true\nCONTAINER_COMPONENTS_INIT_URL=https://raw.githubusercontent.com/sustainable-computing-io/kepler-model-server/main/tests/test_models/DynComponentPower/CgroupOnly/ScikitMixed.zip\n"
         set_env_from_model_config()
         reset_failed_list()
         if output_type_name in loaded_model:

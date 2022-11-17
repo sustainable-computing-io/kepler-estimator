@@ -22,8 +22,8 @@ CONFIG_PATH = "/etc/config"
 modelItemNameMap = {
     "Abs": "NODE_TOTAL",
     "AbsComponent": "NODE_COMPOENTS",
-    "Dyn": "POD_TOTAL",
-    "DynComponent": "POD_COMPONENTS"
+    "Dyn": "CONTAINER_TOTAL",
+    "DynComponent": "CONTAINER_COMPONENTS"
 }
 
 modelTypeNameMap = {

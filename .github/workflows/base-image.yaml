@@ -1,8 +1,11 @@
-name: Build-push estimator image
+name: Build-push base image
 
 on:
   push:
     branches: [ main ]
+    paths:
+      - Dockerfile.base
+      - requirements.txt
 
 jobs:
   build:
@@ -11,18 +14,18 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-      
+
     - name: Build image
-      run: podman build -t quay.io/sustainable_computing_io/kepler-estimator:latest -f Dockerfile
-      
+      run: podman build -t quay.io/sustainable_computing_io/kepler-estimator-base:latest -f Dockerfile.base
+
     - name: Login to Quay
       if: ${{ github.repository_owner == 'sustainable-computing-io' }}
       uses: docker/login-action@v1
       with:
           registry: quay.io/sustainable_computing_io
           username: ${{ secrets.BOT_NAME }}
-          password: ${{ secrets.BOT_TOKEN }}      
+          password: ${{ secrets.BOT_TOKEN }}
 
-    - name: push to quay
+    - name: Push to quay
       if: ${{ github.repository_owner == 'sustainable-computing-io' }}
-      run: podman push quay.io/sustainable_computing_io/kepler-estimator:latest
+      run: podman push quay.io/sustainable_computing_io/kepler-estimator-base:latest

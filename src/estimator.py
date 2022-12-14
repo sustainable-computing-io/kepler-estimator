@@ -61,6 +61,10 @@ def handle_request(data):
                 output_path = get_achived_model(power_request)
                 if output_path is None:
                     return {"powers": [], "msg": "failed to get model"}
+                else:
+                    print("load model from config: ", output_path)
+            else:
+                print("load model from model server: ", output_path)
         loaded_model[output_type.name] = load_model(output_type.name)
         # remove loaded model
         shutil.rmtree(output_path)

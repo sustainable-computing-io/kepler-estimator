@@ -35,7 +35,7 @@ modelEnvMap = {"{}{}".format(modelItemKey, modelTypeKey): "{}_{}".format(modelIt
 estimatorKeyMap = {"{}Power".format(modelItemKey): "{}_ESTIMATOR".format(modelItemNameMap[modelItemKey]) for modelItemKey in modelItemNameMap.keys()}
 initUrlKeyMap = {"{}Power".format(modelItemKey): "{}_INIT_URL".format(modelItemNameMap[modelItemKey]) for modelItemKey in modelItemNameMap.keys()}
 
-MODEL_SERVER_SVC = "kepler-model-server.monitoring.cluster.local"
+MODEL_SERVER_SVC = "kepler-model-server.kepler.svc.cluster.local"
 DEFAULT_MODEL_SERVER_PORT = 8100
 MODEL_SERVER_ENDPOINT = 'http://{}:{}'.format(MODEL_SERVER_SVC, DEFAULT_MODEL_SERVER_PORT)
 MODEL_SERVER_MODEL_REQ_PATH = "/model"

@@ -4,8 +4,8 @@ metadata:
   name: kepler-cfm
 data:
   MODEL_CONFIG: |
-    CONTAINER_COMPONENTS_ESTIMATOR=true
-    CONTAINER_COMPONENTS_INIT_URL=https://raw.githubusercontent.com/sustainable-computing-io/kepler-model-server/main/tests/test_models/DynComponentPower/CgroupOnly/ScikitMixed.zip
+      CONTAINER_COMPONENTS_ESTIMATOR="true"
+      CONTAINER_COMPONENTS_INIT_URL=https://raw.githubusercontent.com/sustainable-computing-io/kepler-model-server/main/tests/test_models/DynComponentPower/CgroupOnly/ScikitMixed.zip
 ---
 apiVersion: batch/v1
 kind: Job

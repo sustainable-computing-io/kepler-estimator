@@ -22,7 +22,7 @@ spec:
         - mountPath: /tmp
           name: tmp
         - name: cfm
-          mountPath: /etc/config
+          mountPath: /etc/kepler/kepler.config
           readOnly: true
         command: ["python3", "src/estimator_test.py"]
       restartPolicy: Never
